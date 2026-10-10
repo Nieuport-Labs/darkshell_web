@@ -5,7 +5,8 @@ The website of [DarkShell](https://github.com/Nieuport-Labs/darkshell), the priv
 A static [Astro](https://astro.build) site: no client framework, no cookies, no analytics, no third-party requests. The typeface (Google Sans Flex, SIL OFL 1.1) is self-hosted.
 
 ```
-src/pages/        index (landing), developers (secret-pay guide), privacy, 404
+src/pages/        index (landing), developers (secret-pay guide), donate (sSCRT via secret-pay checkout), privacy, 404
+src/lib/secret-pay/  vendored checkout from the wallet repo (MIT)
 src/components/   nav, footer, phone mockups drawn in CSS, code blocks, icons
 src/config.ts     links used across the site (GitHub, download, spec)
 public/           fonts, icons, og.png (link preview)

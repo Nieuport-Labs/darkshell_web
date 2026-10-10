@@ -15,9 +15,14 @@ export const RELEASES = `${GITHUB}/releases`;
 
 export const MIN_ANDROID = 'Android 8.0';
 
+/** Donations: received as sSCRT only (the payer may pay from anything). */
+export const DONATE_ADDRESS = 'secret16dyfc744j0lrhae0xpfjxl5cnx2hu80h0p0rad';
+export const SSCRT = 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek';
+
 export const NAV = [
 	{ href: '/#features', label: 'Features' },
 	{ href: '/#pay', label: 'Pay' },
 	{ href: '/#security', label: 'Security' },
 	{ href: '/developers', label: 'Developers' },
+	{ href: '/donate', label: 'Donate' },
 ];

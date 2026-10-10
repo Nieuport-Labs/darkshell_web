@@ -1,0 +1,1 @@
+Vendored from [Nieuport-Labs/darkshell `packages/secret-pay/src`](https://github.com/Nieuport-Labs/darkshell/tree/main/packages/secret-pay) v1.1 (MIT, see LICENSE): the files `checkout` needs. Replace with the npm package once it is published.

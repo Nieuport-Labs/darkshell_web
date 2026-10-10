@@ -1,0 +1,345 @@
+---
+// Donations in sSCRT, taken with secret-pay checkout — the same flow a shop
+// would use, so it doubles as the easiest way to try DarkShell's payment sheet.
+// The payer pays however they like: DarkShell (from sSCRT, swapping when
+// needed), or any wallet through the request's Secret Dashboard page.
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { APK_URL, DONATE_ADDRESS } from '../config';
+
+const PRESETS = ['1', '5', '20', '50'];
+const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
+---
+
+<Base title="Donate — DarkShell" description="DarkShell is free, without ads or tracking. Support it with sSCRT — and try the payment sheet while you’re at it.">
+	<section class="shell donate">
+		<div class="copy">
+			<span class="eyebrow">Donate</span>
+			<h1 class="display">Keep privacy free.</h1>
+			<p class="lead">
+				DarkShell costs nothing, shows no ads and collects no data. Donations pay for the work that keeps it that way — new features, security reviews and the
+				infrastructure around it.
+			</p>
+			<div class="try">
+				<span class="try-ic"><Icon name="fingerprint" /></span>
+				<div>
+					<b>Try the payment sheet</b>
+					<p class="muted">
+						Open this page on the phone with DarkShell and tap <em>Donate with DarkShell</em>: the wallet slides up over the page, you confirm with your fingerprint and come
+						straight back here. Even 1 sSCRT does it.
+					</p>
+				</div>
+			</div>
+			<p class="faint small">
+				Donations arrive as private sSCRT. You can pay from any token or wallet — DarkShell swaps for you, and other wallets pay through Secret Dashboard. No DarkShell yet?
+				<a class="text-link" href={APK_URL}>Get it for Android</a>.
+			</p>
+		</div>
+
+		<div class="bezel">
+			<div class="core panel">
+				<!-- the form -->
+				<form id="donate-form" class="form" novalidate>
+					<fieldset>
+						<legend>Amount</legend>
+						<div class="presets">
+							{
+								PRESETS.map((p, i) => (
+									<label class="preset">
+										<input type="radio" name="preset" value={p} checked={i === 1} />
+										<span>
+											{p}
+											<small>sSCRT</small>
+										</span>
+									</label>
+								))
+							}
+						</div>
+						<label class="custom">
+							<span class="sr">Other amount</span>
+							<input id="amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="Other amount" />
+							<span class="unit">sSCRT</span>
+						</label>
+					</fieldset>
+
+					<label class="note">
+						<span>Note <i class="faint">— optional, sent privately with the donation</i></span>
+						<textarea id="note" name="note" rows="2" maxlength="120" placeholder="Thanks for DarkShell!"></textarea>
+					</label>
+
+					<p id="error" class="error" role="alert" hidden></p>
+
+					<div class="buttons">
+						<button type="submit" class="btn btn-primary wide" id="pay">
+							<span id="pay-label">Donate with DarkShell</span>
+							<span class="knob"><img src="/avatar.webp" alt="" width="22" height="22" /></span>
+						</button>
+						<a class="btn btn-ghost btn-plain wide" id="other" href="#" target="_blank" rel="noopener">Pay with another wallet</a>
+					</div>
+				</form>
+
+				<!-- on a computer: a QR code for the phone -->
+				<div id="qr-view" class="qr-view" hidden>
+					<div id="qr" class="qr" role="img" aria-label="QR code with the donation request"></div>
+					<p><b id="qr-amount"></b></p>
+					<p class="muted small">Scan it with your phone’s camera. With DarkShell installed, the payment sheet opens; without it, the payment page in the browser.</p>
+					<div class="buttons">
+						<a class="btn btn-ghost btn-plain wide" id="qr-open" href="#">Open in a wallet on this computer</a>
+						<button type="button" class="btn btn-plain back" id="qr-back">Change amount</button>
+					</div>
+				</div>
+
+				<!-- back from the wallet -->
+				<div id="thanks" class="thanks" hidden>
+					<div class="mark" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" /><path d="M15 27l7 7 15-16" /></svg></div>
+					<h2 class="h3">Thank you!</h2>
+					<p class="muted">Your donation is on its way to DarkShell. It means a lot.</p>
+					<a id="tx" class="text-link small" href="#" target="_blank" rel="noopener" hidden>View the transaction</a>
+					<button type="button" class="btn btn-ghost btn-plain" id="again">Donate again</button>
+				</div>
+
+				<p id="cancelled" class="cancelled faint small" hidden>Payment cancelled — nothing was sent.</p>
+
+				<div class="direct">
+					<span class="faint small">Or send sSCRT directly</span>
+					<button type="button" class="addr" id="copy" data-address={DONATE_ADDRESS} title={DONATE_ADDRESS}>
+						<code>{short}</code>
+						<span id="copy-label">Copy</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</section>
+</Base>
+
+<style>
+	.donate { display: grid; grid-template-columns: 1fr 0.95fr; gap: clamp(2.5rem, 6vw, 5rem); align-items: start; padding: clamp(8rem, 15vw, 10rem) 0 6rem; }
+	.copy { display: grid; gap: 1.5rem; justify-items: start; position: sticky; top: 7rem; }
+	.copy .display { font-size: clamp(2.75rem, 6vw, 4.75rem); }
+	.small { font-size: 0.9rem; line-height: 1.6; }
+	.try { display: flex; gap: 1rem; padding: 1.2rem 1.3rem; border-radius: 1.25rem; border: 1px solid var(--border); background: var(--surface-1); }
+	.try b { font-weight: 500; }
+	.try p { font-size: 0.95rem; margin-top: 0.25rem; line-height: 1.6; }
+	.try em { font-style: normal; color: var(--text); }
+	.try-ic { display: grid; place-items: center; flex-shrink: 0; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+
+	.panel { padding: clamp(1.4rem, 3vw, 2rem); display: grid; gap: 1.5rem; }
+	.form { display: grid; gap: 1.4rem; }
+	fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+	legend, .note > span { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.6rem; padding: 0; }
+	.note i { font-style: normal; }
+	.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+	.preset input { position: absolute; opacity: 0; pointer-events: none; }
+	.preset span {
+		display: grid;
+		justify-items: center;
+		gap: 0.1rem;
+		padding: 0.85rem 0.25rem 0.75rem;
+		border-radius: 1rem;
+		border: 1px solid var(--border);
+		background: var(--surface-1);
+		font-size: 1.3rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		font-variant-numeric: tabular-nums;
+		cursor: pointer;
+		transition: border-color 200ms, background-color 200ms;
+	}
+	.preset small { font-size: 0.72rem; font-weight: 500; color: var(--text-faint); letter-spacing: 0; }
+	.preset span:hover { background: var(--surface-2); }
+	.preset input:checked + span { border-color: var(--accent); background: var(--accent-soft); }
+	.preset input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+	.custom, .note textarea {
+		display: flex;
+		align-items: center;
+		border-radius: 1rem;
+		border: 1px solid var(--border);
+		background: var(--surface-1);
+		transition: border-color 200ms;
+	}
+	.custom:focus-within, .note textarea:focus { border-color: var(--border-strong); }
+	.custom input { flex: 1; min-width: 0; padding: 0.9rem 1rem; border: 0; background: none; color: var(--text); font: 500 1.05rem var(--font); outline: none; font-variant-numeric: tabular-nums; }
+	.custom input::placeholder, textarea::placeholder { color: var(--text-faint); }
+	.unit { padding-right: 1rem; color: var(--text-faint); font-size: 0.9rem; }
+	.note { display: grid; }
+	textarea { width: 100%; padding: 0.85rem 1rem; color: var(--text); font: 1rem/1.5 var(--font); resize: none; outline: none; }
+	.error { color: #ff6b5a; font-size: 0.92rem; margin-top: -0.4rem; }
+	.buttons { display: grid; gap: 0.6rem; }
+	.wide { width: 100%; justify-content: space-between; }
+	.btn-plain.wide { justify-content: center; }
+	.knob img { border-radius: 999px; }
+	.back { color: var(--text-muted); background: none; }
+	.back:hover { color: var(--text); }
+
+	.qr-view, .thanks { display: grid; justify-items: center; gap: 0.9rem; text-align: center; }
+	.qr-view[hidden], .thanks[hidden], .form[hidden], .cancelled[hidden], .error[hidden], #tx[hidden] { display: none; }
+	.qr { width: min(260px, 100%); padding: 0.9rem; border-radius: 1.25rem; background: #fff; }
+	.qr :global(svg) { display: block; width: 100%; height: auto; }
+	.qr-view b { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; }
+	.qr-view .buttons { width: 100%; }
+
+	.mark { width: 5rem; height: 5rem; }
+	.mark svg { width: 100%; height: 100%; }
+	.mark circle { fill: rgb(33 193 122 / 0.14); stroke: var(--positive); stroke-width: 2; }
+	.mark path { fill: none; stroke: var(--positive); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw 500ms 250ms var(--ease) forwards; }
+	.mark { animation: pop 600ms var(--ease) backwards; }
+	@keyframes draw { to { stroke-dashoffset: 0; } }
+	@keyframes pop { from { opacity: 0; transform: scale(0.85); } }
+
+	.cancelled { text-align: center; }
+	.direct { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+	.addr { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.4rem 0.4rem 0.8rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text); cursor: pointer; }
+	.addr code { font: 0.82rem var(--mono); color: var(--text-muted); }
+	.addr span { padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--surface-3); font-size: 0.8rem; font-weight: 500; }
+	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+	@media (max-width: 900px) {
+		.donate { grid-template-columns: 1fr; }
+		.copy { position: static; }
+	}
+	@media (max-width: 420px) {
+		.presets { grid-template-columns: repeat(2, 1fr); }
+	}
+</style>
+
+<script>
+	import qrcode from 'qrcode-generator';
+	import { checkout, readReturn } from '../lib/secret-pay/checkout';
+	import { newInvoiceId } from '../lib/secret-pay/encode';
+	import { normalizeAmount } from '../lib/secret-pay/amount';
+	import type { PaymentRequest } from '../lib/secret-pay/types';
+	import { DASHBOARD, DONATE_ADDRESS, SSCRT } from '../config';
+
+	const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+	const form = $<HTMLFormElement>('donate-form');
+	const amountInput = $<HTMLInputElement>('amount');
+	const note = $<HTMLTextAreaElement>('note');
+	const error = $('error');
+	const other = $<HTMLAnchorElement>('other');
+	const qrView = $('qr-view');
+	const thanks = $('thanks');
+	const cancelled = $('cancelled');
+	const isAndroid = /Android/i.test(navigator.userAgent);
+
+	// a computer can't open the wallet itself: the button shows a QR code instead
+	if (!isAndroid) $('pay-label').textContent = 'Donate with DarkShell — QR code';
+
+	function amount(): string | null {
+		const typed = amountInput.value.trim().replace(',', '.');
+		const raw = typed || (form.querySelector<HTMLInputElement>('input[name=preset]:checked')?.value ?? '');
+		const n = normalizeAmount(raw);
+		if (!n || Number(n) <= 0) return null;
+		const [, frac = ''] = n.split('.');
+		return frac.length > 6 ? null : n;
+	}
+
+	function request(): PaymentRequest | null {
+		const a = amount();
+		if (!a) return null;
+		const text = note.value.trim();
+		// a memo is at most 256 bytes on chain
+		if (new TextEncoder().encode(text).length > 256) return null;
+		return {
+			chain: 'secret-4',
+			address: DONATE_ADDRESS,
+			asset: SSCRT,
+			amount: a,
+			id: newInvoiceId('DON'),
+			label: 'DarkShell',
+			message: 'A donation to DarkShell. Thank you!',
+			exp: Math.floor(Date.now() / 1000) + 60 * 60,
+			// the donor's note travels as the private memo
+			...(text ? { memo: text } : {}),
+		};
+	}
+
+	const returnUrl = () => `${location.origin}${location.pathname}`;
+
+	function build() {
+		const r = request();
+		if (!r) return null;
+		return { r, c: checkout(r, { returnUrl: returnUrl(), fallbackOrigin: DASHBOARD }) };
+	}
+
+	// "another wallet": the request's Secret Dashboard page, kept in step with the form
+	function syncOther() {
+		const b = build();
+		other.href = b?.c.link ?? DASHBOARD;
+		other.toggleAttribute('aria-disabled', !b);
+	}
+	form.addEventListener('input', (e) => {
+		if ((e.target as HTMLElement).id === 'amount' && amountInput.value) form.querySelectorAll<HTMLInputElement>('input[name=preset]').forEach((p) => (p.checked = false));
+		if ((e.target as HTMLInputElement).name === 'preset') amountInput.value = '';
+		error.hidden = true;
+		syncOther();
+	});
+	syncOther();
+
+	other.addEventListener('click', (e) => {
+		if (!amount()) {
+			e.preventDefault();
+			showError();
+		}
+	});
+
+	function showError() {
+		error.textContent = amount() ? 'The note is too long.' : 'Enter an amount in sSCRT, with at most 6 decimals.';
+		error.hidden = false;
+	}
+
+	form.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const b = build();
+		if (!b) return showError();
+		if (isAndroid) {
+			location.href = b.c.url;
+			return;
+		}
+		const qr = qrcode(0, 'M');
+		// the web link: a phone camera opens it, and Android hands it to DarkShell
+		qr.addData(b.c.link ?? b.c.uri, 'Byte');
+		qr.make();
+		$('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+		$('qr-amount').textContent = `${b.r.amount} sSCRT`;
+		$<HTMLAnchorElement>('qr-open').href = b.c.url;
+		form.hidden = true;
+		qrView.hidden = false;
+	});
+
+	$('qr-back').addEventListener('click', () => {
+		qrView.hidden = true;
+		form.hidden = false;
+	});
+
+	// back from the wallet
+	const back = readReturn();
+	if (back) {
+		history.replaceState(null, '', returnUrl());
+		if (back.status === 'paid') {
+			form.hidden = true;
+			thanks.hidden = false;
+			if (back.tx) {
+				const tx = $<HTMLAnchorElement>('tx');
+				tx.href = `https://www.mintscan.io/secret/tx/${back.tx}`;
+				tx.hidden = false;
+			}
+		} else {
+			cancelled.hidden = false;
+		}
+	}
+	$('again').addEventListener('click', () => {
+		thanks.hidden = true;
+		form.hidden = false;
+	});
+
+	const copy = $<HTMLButtonElement>('copy');
+	copy.addEventListener('click', async () => {
+		try {
+			await navigator.clipboard.writeText(copy.dataset.address ?? '');
+			$('copy-label').textContent = 'Copied';
+			setTimeout(() => ($('copy-label').textContent = 'Copy'), 1500);
+		} catch {
+			/* clipboard blocked */
+		}
+	});
+</script>
