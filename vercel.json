@@ -16,7 +16,7 @@
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+          "value": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; font-src 'self'; connect-src 'self' https://lcd-secret.keplr.app https://lcd.mainnet.secretsaturn.net https://lcd.secret.express https://secret-api.lavenderfive.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
         }
       ]
     },

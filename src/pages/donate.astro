@@ -1,14 +1,15 @@
 ---
-// Donations in sSCRT, taken with secret-pay checkout — the same flow a shop
-// would use, so it doubles as the easiest way to try DarkShell's payment sheet.
-// The payer pays however they like: DarkShell (from sSCRT, swapping when
-// needed), or any wallet through the request's Secret Dashboard page.
+// Donations, received as sSCRT only, paid the way Secret_Dashboard pays an
+// invoice: a QR code (link or URI) for a phone wallet, "Pay with DarkShell"
+// on Android (the payment sheet slides up over this page and comes back), or a
+// browser wallet (Keplr, Leap) right here — paying from sSCRT, public SCRT or
+// any private token, swapped on ShadeSwap in the same transaction. A payment
+// DarkShell reports is looked up on chain before the page says thanks.
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import { APK_URL, DONATE_ADDRESS } from '../config';
 
 const PRESETS = ['1', '5', '20', '50'];
-const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 ---
 
 <Base title="Donate — DarkShell" description="DarkShell is free, without ads or tracking. Support it with sSCRT — and try the payment sheet while you’re at it.">
@@ -25,28 +26,28 @@ const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 				<div>
 					<b>Try the payment sheet</b>
 					<p class="muted">
-						Open this page on the phone with DarkShell and tap <em>Donate with DarkShell</em>: the wallet slides up over the page, you confirm with your fingerprint and come
+						Open this page on the phone with DarkShell and tap <em>Pay with DarkShell</em>: the wallet slides up over the page, you confirm with your fingerprint and come
 						straight back here. Even 1 sSCRT does it.
 					</p>
 				</div>
 			</div>
 			<p class="faint small">
-				Donations arrive as private sSCRT. You can pay from any token or wallet — DarkShell swaps for you, and other wallets pay through Secret Dashboard. No DarkShell yet?
-				<a class="text-link" href={APK_URL}>Get it for Android</a>.
+				Donations arrive as private sSCRT; pay from whatever you hold — sSCRT, SCRT or any token ShadeSwap trades.
+				No DarkShell yet? <a class="text-link" href={APK_URL}>Get it for Android</a>.
 			</p>
 		</div>
 
 		<div class="bezel">
-			<div class="core panel">
-				<!-- the form -->
-				<form id="donate-form" class="form" novalidate>
+			<div class="core panel" id="panel">
+				<!-- 1. how much -->
+				<form id="step-amount" class="step" novalidate>
 					<fieldset>
 						<legend>Amount</legend>
 						<div class="presets">
 							{
 								PRESETS.map((p, i) => (
 									<label class="preset">
-										<input type="radio" name="preset" value={p} checked={i === 1} />
+										<input type="radio" name="preset" value={p} checked={i === 2} />
 										<span>
 											{p}
 											<small>sSCRT</small>
@@ -61,49 +62,85 @@ const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 							<span class="unit">sSCRT</span>
 						</label>
 					</fieldset>
-
 					<label class="note">
 						<span>Note <i class="faint">— optional, sent privately with the donation</i></span>
-						<textarea id="note" name="note" rows="2" maxlength="120" placeholder="Thanks for DarkShell!"></textarea>
+						<textarea id="note" rows="2" maxlength="120" placeholder="Thanks for DarkShell!"></textarea>
 					</label>
-
-					<p id="error" class="error" role="alert" hidden></p>
-
-					<div class="buttons">
-						<button type="submit" class="btn btn-primary wide" id="pay">
-							<span id="pay-label">Donate with DarkShell</span>
-							<span class="knob"><img src="/avatar.webp" alt="" width="22" height="22" /></span>
-						</button>
-						<a class="btn btn-ghost btn-plain wide" id="other" href="#" target="_blank" rel="noopener">Pay with another wallet</a>
-					</div>
+					<p id="amount-error" class="error" role="alert" hidden></p>
+					<button type="submit" class="btn btn-primary wide">
+						Continue
+						<span class="knob"><Icon name="arrow" size={16} stroke={2} /></span>
+					</button>
 				</form>
 
-				<!-- on a computer: a QR code for the phone -->
-				<div id="qr-view" class="qr-view" hidden>
-					<div id="qr" class="qr" role="img" aria-label="QR code with the donation request"></div>
-					<p><b id="qr-amount"></b></p>
-					<p class="muted small">Scan it with your phone’s camera. With DarkShell installed, the payment sheet opens; without it, the payment page in the browser.</p>
-					<div class="buttons">
-						<a class="btn btn-ghost btn-plain wide" id="qr-open" href="#">Open in a wallet on this computer</a>
-						<button type="button" class="btn btn-plain back" id="qr-back">Change amount</button>
+				<!-- 2. the request, and how to pay it -->
+				<div id="step-pay" class="step" hidden>
+					<div class="invoice">
+						<p class="figure"><span id="inv-amount">20</span> <em>sSCRT</em></p>
+						<span class="pill"><Icon name="shield" size={14} /> Private transfer</span>
+						<p class="muted">To <b>DarkShell</b></p>
+						<p class="addr-full">{DONATE_ADDRESS}</p>
+						<p class="faint tiny"><span id="inv-id" class="mono"></span> · <span id="inv-exp"></span></p>
 					</div>
+
+					<div class="buttons">
+						<button type="button" class="btn btn-primary wide" id="pay-darkshell" hidden>
+							Pay with DarkShell
+							<span class="knob"><img src="/avatar.webp" alt="" width="22" height="22" /></span>
+						</button>
+						<button type="button" class="btn btn-soft wide" id="pay-wallet">
+							<span id="pay-wallet-label">Pay with a browser wallet</span>
+							<span class="knob"><Icon name="layers" size={16} stroke={1.8} /></span>
+						</button>
+					</div>
+					<p id="cancelled" class="faint tiny center" hidden>Payment cancelled in DarkShell.</p>
+
+					<div class="qr-block">
+						<div class="switch" role="group" aria-label="QR code contents">
+							<button type="button" data-qr="link" aria-pressed="true">Link</button>
+							<button type="button" data-qr="uri" aria-pressed="false">URI</button>
+						</div>
+						<div id="qr" class="qr" role="img" aria-label="QR code of the donation request"></div>
+						<p class="faint tiny center">Scan with a phone camera: with DarkShell installed, its payment sheet opens. The URI is for a wallet’s own scanner.</p>
+					</div>
+
+					<button type="button" class="btn btn-plain back" data-back="amount">Change amount</button>
 				</div>
 
-				<!-- back from the wallet -->
-				<div id="thanks" class="thanks" hidden>
-					<div class="mark" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" /><path d="M15 27l7 7 15-16" /></svg></div>
-					<h2 class="h3">Thank you!</h2>
-					<p class="muted">Your donation is on its way to DarkShell. It means a lot.</p>
-					<a id="tx" class="text-link small" href="#" target="_blank" rel="noopener" hidden>View the transaction</a>
-					<button type="button" class="btn btn-ghost btn-plain" id="again">Donate again</button>
+				<!-- 3. a browser wallet -->
+				<div id="step-wallet" class="step" hidden>
+					<p class="step-title">Pay <b id="w-amount"></b> sSCRT with</p>
+					<div id="w-choose" class="wallets">
+						<button type="button" class="wallet" data-wallet="keplr"><span>Keplr</span><Icon name="arrow" size={16} /></button>
+						<button type="button" class="wallet" data-wallet="leap"><span>Leap</span><Icon name="arrow" size={16} /></button>
+					</div>
+					<p id="w-status" class="status muted" hidden></p>
+					<div id="w-sources" class="sources" role="radiogroup" aria-label="Pay from" hidden></div>
+					<p id="w-error" class="error" role="alert" hidden></p>
+					<button type="button" class="btn btn-primary wide" id="w-confirm" hidden>
+						<span id="w-confirm-label">Donate</span>
+						<span class="knob"><Icon name="check" size={16} stroke={2} /></span>
+					</button>
+					<p id="w-fee" class="faint tiny center" hidden>The network fee is paid from your wallet’s SCRT; your wallet shows it before you sign.</p>
+					<button type="button" class="btn btn-plain back" data-back="pay">Back</button>
 				</div>
 
-				<p id="cancelled" class="cancelled faint small" hidden>Payment cancelled — nothing was sent.</p>
+				<!-- 4. done -->
+				<div id="step-done" class="step center" hidden>
+					<div class="mark" id="mark" aria-hidden="true">
+						<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"></circle><path d="M15 27l7 7 15-16"></path></svg>
+					</div>
+					<div class="spinner" id="spinner" aria-hidden="true"></div>
+					<h2 class="h3" id="done-title">Thank you!</h2>
+					<p class="muted" id="done-text">Your donation is in. It means a lot.</p>
+					<a id="done-tx" class="text-link tiny mono" href="#" target="_blank" rel="noopener" hidden></a>
+					<button type="button" class="btn btn-ghost btn-plain" data-back="amount">Donate again</button>
+				</div>
 
 				<div class="direct">
-					<span class="faint small">Or send sSCRT directly</span>
-					<button type="button" class="addr" id="copy" data-address={DONATE_ADDRESS} title={DONATE_ADDRESS}>
-						<code>{short}</code>
+					<span class="faint tiny">Or send sSCRT directly</span>
+					<button type="button" class="copy-addr" id="copy" data-address={DONATE_ADDRESS} title={DONATE_ADDRESS}>
+						<code>{DONATE_ADDRESS.slice(0, 14)}…{DONATE_ADDRESS.slice(-6)}</code>
 						<span id="copy-label">Copy</span>
 					</button>
 				</div>
@@ -117,6 +154,9 @@ const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 	.copy { display: grid; gap: 1.5rem; justify-items: start; position: sticky; top: 7rem; }
 	.copy .display { font-size: clamp(2.75rem, 6vw, 4.75rem); }
 	.small { font-size: 0.9rem; line-height: 1.6; }
+	.tiny { font-size: 0.85rem; line-height: 1.55; }
+	.center { text-align: center; }
+	.mono { font-family: var(--mono); }
 	.try { display: flex; gap: 1rem; padding: 1.2rem 1.3rem; border-radius: 1.25rem; border: 1px solid var(--border); background: var(--surface-1); }
 	.try b { font-weight: 500; }
 	.try p { font-size: 0.95rem; margin-top: 0.25rem; line-height: 1.6; }
@@ -124,73 +164,79 @@ const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 	.try-ic { display: grid; place-items: center; flex-shrink: 0; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 
 	.panel { padding: clamp(1.4rem, 3vw, 2rem); display: grid; gap: 1.5rem; }
-	.form { display: grid; gap: 1.4rem; }
+	.step { display: grid; gap: 1.25rem; }
+	[hidden] { display: none !important; }
 	fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
 	legend, .note > span { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.6rem; padding: 0; }
 	.note i { font-style: normal; }
 	.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
 	.preset input { position: absolute; opacity: 0; pointer-events: none; }
-	.preset span {
-		display: grid;
-		justify-items: center;
-		gap: 0.1rem;
-		padding: 0.85rem 0.25rem 0.75rem;
-		border-radius: 1rem;
-		border: 1px solid var(--border);
-		background: var(--surface-1);
-		font-size: 1.3rem;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		font-variant-numeric: tabular-nums;
-		cursor: pointer;
-		transition: border-color 200ms, background-color 200ms;
-	}
+	.preset span { display: grid; justify-items: center; gap: 0.1rem; padding: 0.85rem 0.25rem 0.75rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface-1); font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color 200ms, background-color 200ms; }
 	.preset small { font-size: 0.72rem; font-weight: 500; color: var(--text-faint); letter-spacing: 0; }
 	.preset span:hover { background: var(--surface-2); }
 	.preset input:checked + span { border-color: var(--accent); background: var(--accent-soft); }
 	.preset input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
-	.custom, .note textarea {
-		display: flex;
-		align-items: center;
-		border-radius: 1rem;
-		border: 1px solid var(--border);
-		background: var(--surface-1);
-		transition: border-color 200ms;
-	}
-	.custom:focus-within, .note textarea:focus { border-color: var(--border-strong); }
+	.custom, textarea { display: flex; align-items: center; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface-1); transition: border-color 200ms; }
+	.custom:focus-within, textarea:focus { border-color: var(--border-strong); }
 	.custom input { flex: 1; min-width: 0; padding: 0.9rem 1rem; border: 0; background: none; color: var(--text); font: 500 1.05rem var(--font); outline: none; font-variant-numeric: tabular-nums; }
 	.custom input::placeholder, textarea::placeholder { color: var(--text-faint); }
 	.unit { padding-right: 1rem; color: var(--text-faint); font-size: 0.9rem; }
 	.note { display: grid; }
 	textarea { width: 100%; padding: 0.85rem 1rem; color: var(--text); font: 1rem/1.5 var(--font); resize: none; outline: none; }
-	.error { color: #ff6b5a; font-size: 0.92rem; margin-top: -0.4rem; }
+	.error { color: #ff6b5a; font-size: 0.92rem; }
 	.buttons { display: grid; gap: 0.6rem; }
 	.wide { width: 100%; justify-content: space-between; }
-	.btn-plain.wide { justify-content: center; }
+	.btn-soft { border-color: var(--border-strong); background: var(--surface-1); color: var(--text); }
+	.btn-soft:hover { background: var(--surface-2); }
+	.btn-soft .knob { background: var(--surface-3); }
 	.knob img { border-radius: 999px; }
-	.back { color: var(--text-muted); background: none; }
+	.back { justify-self: center; color: var(--text-muted); background: none; --h: 2.4rem; }
 	.back:hover { color: var(--text); }
 
-	.qr-view, .thanks { display: grid; justify-items: center; gap: 0.9rem; text-align: center; }
-	.qr-view[hidden], .thanks[hidden], .form[hidden], .cancelled[hidden], .error[hidden], #tx[hidden] { display: none; }
-	.qr { width: min(260px, 100%); padding: 0.9rem; border-radius: 1.25rem; background: #fff; }
-	.qr :global(svg) { display: block; width: 100%; height: auto; }
-	.qr-view b { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; }
-	.qr-view .buttons { width: 100%; }
+	.invoice { display: grid; justify-items: center; gap: 0.45rem; text-align: center; }
+	.figure { font-size: 3rem; font-weight: 600; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+	.figure em { font-style: normal; font-size: 1.2rem; font-weight: 500; color: var(--text-muted); letter-spacing: -0.01em; }
+	.pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.8rem; }
+	.pill :global(svg) { color: var(--accent); }
+	.invoice b { color: var(--text); font-weight: 500; }
+	.addr-full { font: 0.78rem/1.5 var(--mono); color: var(--text-faint); word-break: break-all; max-width: 22rem; }
 
-	.mark { width: 5rem; height: 5rem; }
+	.qr-block { display: grid; justify-items: center; gap: 0.85rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+	.switch { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; border: 1px solid var(--border); }
+	.switch button { padding: 0.35rem 1rem; border: 0; border-radius: 999px; background: none; color: var(--text-muted); font: 500 0.85rem var(--font); cursor: pointer; }
+	.switch button[aria-pressed='true'] { background: var(--accent-strong); color: #fff; }
+	.qr { width: min(240px, 100%); padding: 0.85rem; border-radius: 1.1rem; background: #fff; }
+	.qr :global(svg) { display: block; width: 100%; height: auto; }
+
+	.step-title { text-align: center; color: var(--text-muted); }
+	.step-title b { color: var(--text); font-weight: 600; }
+	.wallets, .sources { display: grid; gap: 0.5rem; }
+	.wallet, .sources :global(.src) { display: flex; align-items: center; gap: 0.85rem; width: 100%; padding: 0.95rem 1.1rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--surface-1); color: var(--text); font: 500 1rem var(--font); text-align: left; cursor: pointer; transition: background-color 200ms, border-color 200ms; }
+	.wallet:hover, .sources :global(.src:hover) { background: var(--surface-2); }
+	.wallet span { flex: 1; }
+	.wallet :global(svg) { color: var(--text-muted); }
+	.status { text-align: center; }
+	.sources :global(.src[aria-checked='true']) { border-color: var(--accent); background: var(--accent-soft); }
+	.sources :global(.s-main) { flex: 1; display: grid; }
+	.sources :global(small) { color: var(--text-faint); font-size: 0.82rem; font-weight: 400; }
+	.sources :global(.s-pay) { display: grid; text-align: right; font-variant-numeric: tabular-nums; }
+
+	#step-done { justify-items: center; }
+	.mark { width: 4.75rem; height: 4.75rem; margin: 0 auto; animation: pop 600ms var(--ease) backwards; }
 	.mark svg { width: 100%; height: 100%; }
 	.mark circle { fill: rgb(33 193 122 / 0.14); stroke: var(--positive); stroke-width: 2; }
 	.mark path { fill: none; stroke: var(--positive); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw 500ms 250ms var(--ease) forwards; }
-	.mark { animation: pop 600ms var(--ease) backwards; }
+	.mark:global(.bad) circle { fill: rgb(255 77 77 / 0.12); stroke: #ff4d4d; }
+	.mark:global(.bad) path { display: none; }
+	.spinner { width: 3.25rem; height: 3.25rem; margin: 0.75rem auto; border-radius: 999px; border: 3px solid var(--surface-3); border-top-color: var(--accent); animation: spin 900ms linear infinite; }
 	@keyframes draw { to { stroke-dashoffset: 0; } }
 	@keyframes pop { from { opacity: 0; transform: scale(0.85); } }
+	@keyframes spin { to { transform: rotate(360deg); } }
 
-	.cancelled { text-align: center; }
 	.direct { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
-	.addr { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.4rem 0.4rem 0.8rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text); cursor: pointer; }
-	.addr code { font: 0.82rem var(--mono); color: var(--text-muted); }
-	.addr span { padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--surface-3); font-size: 0.8rem; font-weight: 500; }
+	.copy-addr { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.4rem 0.4rem 0.8rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text); cursor: pointer; }
+	.copy-addr code { font: 0.82rem var(--mono); color: var(--text-muted); }
+	.copy-addr span { padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--surface-3); font-size: 0.8rem; font-weight: 500; }
 	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 	@media (max-width: 900px) {
@@ -206,131 +252,320 @@ const short = `${DONATE_ADDRESS.slice(0, 14)}…${DONATE_ADDRESS.slice(-6)}`;
 	import qrcode from 'qrcode-generator';
 	import { checkout, readReturn } from '../lib/secret-pay/checkout';
 	import { newInvoiceId } from '../lib/secret-pay/encode';
-	import { normalizeAmount } from '../lib/secret-pay/amount';
+	import { fromBaseUnits, normalizeAmount, toBaseUnits } from '../lib/secret-pay/amount';
 	import type { PaymentRequest } from '../lib/secret-pay/types';
 	import { DASHBOARD, DONATE_ADDRESS, SSCRT } from '../config';
+	import type { Source } from '../lib/chain/donate';
+	import type { Connection, WalletId } from '../lib/chain/wallet';
 
-	const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-	const form = $<HTMLFormElement>('donate-form');
+	const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+	const STEPS = ['amount', 'pay', 'wallet', 'done'] as const;
+	type Step = (typeof STEPS)[number];
+	const show = (s: Step) => STEPS.forEach((x) => ($(`step-${x}`).hidden = x !== s));
+
+	const isAndroid = /Android/i.test(navigator.userAgent);
+	const returnUrl = `${location.origin}${location.pathname}`;
+	const explorer = (tx: string) => `https://www.mintscan.io/secret/tx/${tx}`;
+
+	let req: PaymentRequest | null = null;
+	let qrKind: 'link' | 'uri' = 'link';
+
+	/* -------------------------------- 1. amount ------------------------------- */
+
+	const form = $<HTMLFormElement>('step-amount');
 	const amountInput = $<HTMLInputElement>('amount');
 	const note = $<HTMLTextAreaElement>('note');
-	const error = $('error');
-	const other = $<HTMLAnchorElement>('other');
-	const qrView = $('qr-view');
-	const thanks = $('thanks');
-	const cancelled = $('cancelled');
-	const isAndroid = /Android/i.test(navigator.userAgent);
+	const amountError = $('amount-error');
 
-	// a computer can't open the wallet itself: the button shows a QR code instead
-	if (!isAndroid) $('pay-label').textContent = 'Donate with DarkShell — QR code';
-
-	function amount(): string | null {
-		const typed = amountInput.value.trim().replace(',', '.');
-		const raw = typed || (form.querySelector<HTMLInputElement>('input[name=preset]:checked')?.value ?? '');
+	function readAmount(): string | null {
+		const raw = amountInput.value.trim().replace(',', '.') || (form.querySelector<HTMLInputElement>('input[name=preset]:checked')?.value ?? '');
 		const n = normalizeAmount(raw);
-		if (!n || Number(n) <= 0) return null;
-		const [, frac = ''] = n.split('.');
-		return frac.length > 6 ? null : n;
+		if (!n || Number(n) <= 0 || (n.split('.')[1] ?? '').length > 6) return null;
+		return n;
 	}
 
-	function request(): PaymentRequest | null {
-		const a = amount();
-		if (!a) return null;
+	form.addEventListener('input', (e) => {
+		const t = e.target as HTMLInputElement;
+		if (t.id === 'amount' && t.value) form.querySelectorAll<HTMLInputElement>('input[name=preset]').forEach((p) => (p.checked = false));
+		if (t.name === 'preset') amountInput.value = '';
+		amountError.hidden = true;
+	});
+
+	form.addEventListener('submit', (e) => {
+		e.preventDefault();
+		const amount = readAmount();
 		const text = note.value.trim();
-		// a memo is at most 256 bytes on chain
-		if (new TextEncoder().encode(text).length > 256) return null;
-		return {
+		if (!amount || new TextEncoder().encode(text).length > 256) {
+			amountError.textContent = amount ? 'The note is too long.' : 'Enter an amount in sSCRT, with at most 6 decimals.';
+			amountError.hidden = false;
+			return;
+		}
+		req = {
 			chain: 'secret-4',
 			address: DONATE_ADDRESS,
 			asset: SSCRT,
-			amount: a,
+			amount,
 			id: newInvoiceId('DON'),
 			label: 'DarkShell',
 			message: 'A donation to DarkShell. Thank you!',
 			exp: Math.floor(Date.now() / 1000) + 60 * 60,
-			// the donor's note travels as the private memo
+			// the donor's note travels as the private memo; without one, the id does
 			...(text ? { memo: text } : {}),
 		};
-	}
-
-	const returnUrl = () => `${location.origin}${location.pathname}`;
-
-	function build() {
-		const r = request();
-		if (!r) return null;
-		return { r, c: checkout(r, { returnUrl: returnUrl(), fallbackOrigin: DASHBOARD }) };
-	}
-
-	// "another wallet": the request's Secret Dashboard page, kept in step with the form
-	function syncOther() {
-		const b = build();
-		other.href = b?.c.link ?? DASHBOARD;
-		other.toggleAttribute('aria-disabled', !b);
-	}
-	form.addEventListener('input', (e) => {
-		if ((e.target as HTMLElement).id === 'amount' && amountInput.value) form.querySelectorAll<HTMLInputElement>('input[name=preset]').forEach((p) => (p.checked = false));
-		if ((e.target as HTMLInputElement).name === 'preset') amountInput.value = '';
-		error.hidden = true;
-		syncOther();
-	});
-	syncOther();
-
-	other.addEventListener('click', (e) => {
-		if (!amount()) {
-			e.preventDefault();
-			showError();
-		}
+		renderPay();
+		show('pay');
 	});
 
-	function showError() {
-		error.textContent = amount() ? 'The note is too long.' : 'Enter an amount in sSCRT, with at most 6 decimals.';
-		error.hidden = false;
-	}
+	/* ---------------------------- 2. the request ------------------------------ */
 
-	form.addEventListener('submit', (e) => {
-		e.preventDefault();
-		const b = build();
-		if (!b) return showError();
-		if (isAndroid) {
-			location.href = b.c.url;
-			return;
-		}
+	const links = () => checkout(req!, { returnUrl, fallbackOrigin: DASHBOARD });
+
+	function renderQr() {
+		const c = links();
 		const qr = qrcode(0, 'M');
-		// the web link: a phone camera opens it, and Android hands it to DarkShell
-		qr.addData(b.c.link ?? b.c.uri, 'Byte');
+		qr.addData(qrKind === 'link' ? (c.link ?? c.uri) : c.uri, 'Byte');
 		qr.make();
 		$('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
-		$('qr-amount').textContent = `${b.r.amount} sSCRT`;
-		$<HTMLAnchorElement>('qr-open').href = b.c.url;
-		form.hidden = true;
-		qrView.hidden = false;
+	}
+
+	function renderPay() {
+		$('inv-amount').textContent = req!.amount!;
+		$('inv-id').textContent = req!.id!;
+		$('inv-exp').textContent = `valid until ${new Date(req!.exp! * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+		$('pay-darkshell').hidden = !isAndroid;
+		const other = $('pay-wallet');
+		other.classList.toggle('btn-primary', !isAndroid);
+		other.classList.toggle('btn-soft', isAndroid);
+		$('pay-wallet-label').textContent = isAndroid ? 'Pay with another wallet' : 'Pay with a browser wallet';
+		$('cancelled').hidden = true;
+		renderQr();
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-qr]').forEach((b) =>
+		b.addEventListener('click', () => {
+			qrKind = b.dataset.qr as 'link' | 'uri';
+			document.querySelectorAll('[data-qr]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+			renderQr();
+		}),
+	);
+
+	$('pay-darkshell').addEventListener('click', () => {
+		// kept so a cancel brings the payer back to the same request
+		try {
+			sessionStorage.setItem('donate.req', JSON.stringify(req));
+		} catch {
+			/* storage blocked */
+		}
+		location.href = links().url;
 	});
 
-	$('qr-back').addEventListener('click', () => {
-		qrView.hidden = true;
-		form.hidden = false;
+	$('pay-wallet').addEventListener('click', () => {
+		resetWallet();
+		$('w-amount').textContent = req!.amount!;
+		show('wallet');
 	});
 
-	// back from the wallet
-	const back = readReturn();
-	if (back) {
-		history.replaceState(null, '', returnUrl());
-		if (back.status === 'paid') {
-			form.hidden = true;
-			thanks.hidden = false;
-			if (back.tx) {
-				const tx = $<HTMLAnchorElement>('tx');
-				tx.href = `https://www.mintscan.io/secret/tx/${back.tx}`;
-				tx.hidden = false;
+	document.querySelectorAll<HTMLButtonElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show(b.dataset.back as Step)));
+
+	/* ---------------------------- 3. browser wallet --------------------------- */
+
+	let connection: Connection | null = null;
+	let sources: Source[] = [];
+	let chosen: Source | null = null;
+	let busy = false;
+
+	const wStatus = $('w-status');
+	const wError = $('w-error');
+	const wSources = $('w-sources');
+	const wConfirm = $<HTMLButtonElement>('w-confirm');
+
+	function status(text: string | null) {
+		wStatus.hidden = !text;
+		wStatus.textContent = text ?? '';
+	}
+	const INSTALL: Record<string, string> = { Keplr: 'https://www.keplr.app/get', Leap: 'https://www.leapwallet.io/download' };
+
+	function fail(e: unknown) {
+		const m = e instanceof Error ? e.message : String(e);
+		wError.textContent = /reject|denied|cancel/i.test(m) ? 'Cancelled in the wallet.' : m;
+		// a missing extension: say where to get it
+		const missing = Object.keys(INSTALL).find((w) => m.startsWith(`${w} isn`));
+		if (missing) {
+			const a = document.createElement('a');
+			a.className = 'text-link';
+			a.href = INSTALL[missing]!;
+			a.target = '_blank';
+			a.rel = 'noopener';
+			a.textContent = `Get ${missing}`;
+			wError.append(' ', a);
+		}
+		wError.hidden = false;
+	}
+	function resetWallet() {
+		connection = null;
+		sources = [];
+		chosen = null;
+		$('w-choose').hidden = false;
+		wSources.hidden = true;
+		wConfirm.hidden = true;
+		$('w-fee').hidden = true;
+		wError.hidden = true;
+		status(null);
+	}
+
+	const fmt = (v: bigint, decimals: number, max = 4) => {
+		const [i, f = ''] = fromBaseUnits(v, decimals).split('.');
+		const frac = f.slice(0, max).replace(/0+$/, '');
+		return `${i!.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}${frac ? `.${frac}` : ''}`;
+	};
+
+	function line(main: string, sub: string, cls: string): HTMLSpanElement {
+		const s = document.createElement('span');
+		s.className = cls;
+		const a = document.createElement('span');
+		a.textContent = main;
+		const b = document.createElement('small');
+		b.textContent = sub;
+		s.append(a, b);
+		return s;
+	}
+
+	function renderSources() {
+		wSources.replaceChildren(
+			...sources.map((s) => {
+				const b = document.createElement('button');
+				b.type = 'button';
+				b.className = 'src';
+				b.setAttribute('role', 'radio');
+				b.setAttribute('aria-checked', String(s === chosen));
+				const pays = s.kind === 'swap' ? `≈ ${fmt(s.quote.amountIn, s.decimals, 6)} ${s.symbol}` : `${req!.amount} ${s.symbol}`;
+				const how = s.kind === 'sscrt' ? 'Sent privately' : s.kind === 'scrt' ? 'Made private, then sent' : 'Swapped on ShadeSwap, then sent';
+				b.append(line(s.symbol, how, 's-main'), line(pays, `you have ${fmt(s.balance, s.decimals)}`, 's-pay'));
+				b.addEventListener('click', () => {
+					chosen = s;
+					renderSources();
+				});
+				return b;
+			}),
+		);
+		wSources.hidden = !sources.length;
+		wConfirm.hidden = !chosen;
+		$('w-fee').hidden = !chosen;
+		$('w-confirm-label').textContent = chosen ? `Donate ${req!.amount} sSCRT${chosen.kind === 'swap' ? ` from ${chosen.symbol}` : chosen.kind === 'scrt' ? ' from SCRT' : ''}` : 'Donate';
+	}
+
+	document.querySelectorAll<HTMLButtonElement>('[data-wallet]').forEach((b) =>
+		b.addEventListener('click', async () => {
+			if (busy) return;
+			busy = true;
+			wError.hidden = true;
+			try {
+				status('Connecting…');
+				const [{ connect }, { sourcesFor }] = await Promise.all([import('../lib/chain/wallet'), import('../lib/chain/donate')]);
+				connection = await connect(b.dataset.wallet as WalletId);
+				$('w-choose').hidden = true;
+				status('Sign in your wallet to read your balances — a signature, not a transaction.');
+				sources = await sourcesFor(connection, toBaseUnits(req!.amount!, 6));
+				chosen = sources[0] ?? null;
+				status(sources.length ? null : `Nothing in this wallet can pay ${req!.amount} sSCRT. Add sSCRT, SCRT or a token ShadeSwap trades, or choose a smaller amount.`);
+				renderSources();
+			} catch (e) {
+				if (!connection) $('w-choose').hidden = false;
+				status(null);
+				fail(e);
+			} finally {
+				busy = false;
 			}
-		} else {
-			cancelled.hidden = false;
+		}),
+	);
+
+	wConfirm.addEventListener('click', async () => {
+		if (!connection || !chosen || busy) return;
+		busy = true;
+		wError.hidden = true;
+		wConfirm.disabled = true;
+		status('Confirm in your wallet…');
+		try {
+			const { payFrom } = await import('../lib/chain/donate');
+			const hash = await payFrom(connection, chosen, DONATE_ADDRESS, toBaseUnits(req!.amount!, 6), req!.memo ?? req!.id);
+			done('paid', hash);
+		} catch (e) {
+			status(null);
+			fail(e);
+		} finally {
+			busy = false;
+			wConfirm.disabled = false;
+		}
+	});
+
+	/* -------------------------------- 4. done --------------------------------- */
+
+	type Done = 'paid' | 'checking' | 'failed' | 'other' | 'unknown';
+	const TITLES: Record<Done, string> = {
+		paid: 'Thank you!',
+		checking: 'Confirming the payment…',
+		failed: 'The payment failed',
+		other: 'This wasn’t a payment in sSCRT',
+		unknown: 'Sent — not in a block yet',
+	};
+	const TEXTS: Record<Done, string> = {
+		paid: 'Your donation is in. It means a lot.',
+		checking: 'Looking the transaction up on Secret Network.',
+		failed: 'Nothing was taken but the network fee. You can try again.',
+		other: 'The transaction DarkShell reported doesn’t pay sSCRT.',
+		unknown: 'It can take a few more seconds; the link shows where it is.',
+	};
+
+	function done(state: Done, tx?: string) {
+		show('done');
+		const mark = $('mark');
+		mark.hidden = state === 'checking' || state === 'unknown';
+		mark.classList.toggle('bad', state === 'failed' || state === 'other');
+		$('spinner').hidden = state !== 'checking';
+		$('done-title').textContent = TITLES[state];
+		$('done-text').textContent = TEXTS[state];
+		const a = $<HTMLAnchorElement>('done-tx');
+		a.hidden = !tx;
+		if (tx) {
+			a.href = explorer(tx);
+			a.textContent = `${tx.slice(0, 10)}…${tx.slice(-8)}`;
 		}
 	}
-	$('again').addEventListener('click', () => {
-		thanks.hidden = true;
-		form.hidden = false;
-	});
+
+	// back from DarkShell: "paid" in the URL is only what the wallet said — look it up first
+	const back = readReturn();
+	if (back) {
+		history.replaceState(null, '', returnUrl);
+		let saved: PaymentRequest | null = null;
+		try {
+			saved = JSON.parse(sessionStorage.getItem('donate.req') ?? 'null') as PaymentRequest | null;
+		} catch {
+			/* nothing kept */
+		}
+		if (back.status === 'paid' && back.tx) {
+			const tx = back.tx;
+			done('checking', tx);
+			void (async () => {
+				const { txState } = await import('../lib/chain/donate');
+				for (let left = 20; left > 0; left--) {
+					try {
+						const s = await txState(tx);
+						if (s === 'confirmed') return done('paid', tx);
+						if (s === 'failed' || s === 'other') return done(s, tx);
+					} catch {
+						/* node hiccup: try again */
+					}
+					await new Promise((r) => setTimeout(r, 3000));
+				}
+				done('unknown', tx);
+			})();
+		} else if (saved) {
+			req = saved;
+			renderPay();
+			show('pay');
+			$('cancelled').hidden = false;
+		}
+	}
 
 	const copy = $<HTMLButtonElement>('copy');
 	copy.addEventListener('click', async () => {

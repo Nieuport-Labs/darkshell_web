@@ -14,4 +14,6 @@ export default defineConfig({
 	build: { format: 'file' },
 	integrations: [sitemap()],
 	prefetch: { prefetchAll: true },
+	// secretjs (paying from a browser wallet on /donate) expects Node's `global`
+	vite: { define: { global: 'globalThis' } },
 });
