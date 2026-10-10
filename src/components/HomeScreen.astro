@@ -1,0 +1,97 @@
+---
+// The wallet's Home, as the app draws it (app/src/screens/Home.svelte).
+import Icon from './Icon.astro';
+const ROWS = [
+	{ icon: 'down', title: 'Received', sub: 'Private · from Alice', amount: '+25.00', when: '2 min ago', plus: true },
+	{ icon: 'receipt', title: 'Paid invoice', sub: 'Private · Coffee Lab', amount: '−12.40', when: '09:12' },
+	{ icon: 'sprout', title: 'Staking rewards', sub: 'Public · collected', amount: '+0.8312', when: 'Yesterday', plus: true },
+	{ icon: 'send', title: 'Sent', sub: 'Private · to Marek', amount: '−40.00', when: 'Mon' },
+] as const;
+---
+
+<div class="home">
+	<header>
+		<span class="who">
+			<img src="/avatar.webp" alt="" />
+			<span>
+				<b>Account 1 <svg viewBox="0 0 24 24" width="12" height="12"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg></b>
+				<small>secret1fvj…2xph</small>
+			</span>
+		</span>
+		<span class="chips">
+			<span class="onion"><Icon name="onion" size={13} stroke={2} /></span>
+			<span class="gas"><i></i>2.40</span>
+		</span>
+	</header>
+
+	<p class="label">Balance <Icon name="eye" size={13} /></p>
+	<p class="balance"><span>1 284</span><em>.5021</em></p>
+	<p class="meta"><span>sSCRT <span class="dim">· $109.84</span></span><span class="dim">120 staked</span></p>
+
+	<div class="actions">
+		<span class="primary"><Icon name="send" size={13} stroke={2} />Send</span>
+		<span class="secondary"><Icon name="down" size={13} stroke={2} />Receive</span>
+	</div>
+
+	<p class="recent">Recent activity</p>
+	<ul>
+		{
+			ROWS.map((r) => (
+				<li>
+					<span class="ic">
+						<Icon name={r.icon} size={15} />
+					</span>
+					<span class="tx">
+						<b>{r.title}</b>
+						<small>{r.sub}</small>
+					</span>
+					<span class="am">
+						<b class={'plus' in r ? 'pos' : ''}>{r.amount}</b>
+						<small>{r.when}</small>
+					</span>
+				</li>
+			))
+		}
+	</ul>
+
+	<nav>
+		<span class="on"><Icon name="layers" size={15} />Home</span>
+		<span><Icon name="receipt" size={15} />Invoices</span>
+		<span><Icon name="sprout" size={15} />Earn</span>
+	</nav>
+</div>
+
+<style>
+	.home { padding: 0.6em 1.15em 0; height: calc(100% - 2.4em); display: flex; flex-direction: column; }
+	header { display: flex; justify-content: space-between; align-items: center; }
+	.who { display: flex; gap: 0.6em; align-items: center; }
+	.who img { width: 2.2em; height: 2.2em; border-radius: 999px; object-fit: cover; }
+	.who b { display: flex; align-items: center; gap: 0.2em; font-weight: 500; font-size: 1em; }
+	small { display: block; color: var(--text-faint); font-size: 0.72em; }
+	.chips { display: flex; gap: 0.4em; align-items: center; }
+	.onion { color: var(--positive); display: grid; }
+	.gas { display: inline-flex; align-items: center; gap: 0.35em; padding: 0.25em 0.6em; border-radius: 999px; background: var(--surface-2); font-size: 0.72em; font-weight: 600; }
+	.gas i { width: 0.45em; height: 0.45em; border-radius: 999px; background: var(--positive); }
+	.label { display: flex; justify-content: space-between; align-items: center; margin-top: 1.9em; color: var(--text-muted); font-size: 0.82em; }
+	.label :global(svg) { color: var(--text-faint); }
+	.balance { margin-top: 0.35em; display: flex; align-items: baseline; font-weight: 600; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+	.balance span { font-size: 3.1em; }
+	.balance em { font-style: normal; font-size: 1.35em; color: var(--text-faint); letter-spacing: -0.02em; }
+	.meta { display: flex; justify-content: space-between; margin-top: 0.7em; font-size: 0.82em; color: var(--text-muted); }
+	.dim { color: var(--text-faint); }
+	.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em; margin-top: 1.4em; }
+	.actions span { display: flex; justify-content: center; align-items: center; gap: 0.45em; height: 2.7em; border-radius: 999px; font-weight: 500; font-size: 0.86em; }
+	.primary { background: var(--accent-strong); }
+	.secondary { background: var(--surface-2); }
+	.recent { margin-top: 1.7em; font-weight: 500; font-size: 0.92em; }
+	ul { list-style: none; margin: 0.4em 0 0; padding: 0; }
+	li { display: flex; align-items: center; gap: 0.65em; padding: 0.55em 0; }
+	.ic { display: grid; place-items: center; width: 2.1em; height: 2.1em; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); flex-shrink: 0; }
+	.tx { flex: 1; min-width: 0; }
+	.tx b, .am b { display: block; font-weight: 500; font-size: 0.84em; }
+	.am { text-align: right; font-variant-numeric: tabular-nums; }
+	.pos { color: var(--positive); }
+	nav { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3em; padding: 0.5em 0.4em 1.1em; border-top: 1px solid var(--border); }
+	nav span { display: flex; flex-direction: column; align-items: center; gap: 0.2em; padding: 0.4em 0; border-radius: 0.8em; font-size: 0.68em; color: var(--text-muted); }
+	nav .on { background: var(--accent-soft); color: var(--accent); }
+</style>

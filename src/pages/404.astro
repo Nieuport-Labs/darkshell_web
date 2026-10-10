@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+
+<Base title="Not found — DarkShell" description="This page doesn’t exist.">
+	<section class="shell nf">
+		<p class="code">404</p>
+		<h1 class="h2">Nothing here — and nobody saw you look.</h1>
+		<p class="lead">The page you asked for doesn’t exist, or it moved.</p>
+		<a class="btn btn-primary" href="/">
+			Back home
+			<span class="knob"><Icon name="arrow" size={16} stroke={2} /></span>
+		</a>
+	</section>
+</Base>
+
+<style>
+	.nf { min-height: 80dvh; display: grid; place-content: center; justify-items: center; gap: 1.25rem; text-align: center; padding-top: 6rem; }
+	.code { font-size: clamp(5rem, 18vw, 9rem); font-weight: 600; letter-spacing: -0.06em; line-height: 1; background: linear-gradient(180deg, #fff, rgb(255 255 255 / 0.15)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+</style>

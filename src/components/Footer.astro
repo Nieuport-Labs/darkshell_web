@@ -1,0 +1,74 @@
+---
+import { APK_URL, DASHBOARD, GITHUB, RELEASES, SECRET_PAY } from '../config';
+import Logo from './Logo.astro';
+const year = new Date().getFullYear();
+---
+
+<footer class="foot">
+	<div class="shell grid">
+		<div class="brand">
+			<Logo />
+			<p class="faint">A private sSCRT account for Secret Network.<br />Made by Nieuport Labs.</p>
+		</div>
+		<div>
+			<h4>Wallet</h4>
+			<ul>
+				<li><a href={APK_URL}>Download for Android</a></li>
+				<li><a href={RELEASES}>All releases</a></li>
+				<li><a href="/#security">Security</a></li>
+				<li><a href="/#faq">FAQ</a></li>
+			</ul>
+		</div>
+		<div>
+			<h4>Build</h4>
+			<ul>
+				<li><a href="/developers">Accept payments</a></li>
+				<li><a href={SECRET_PAY}>secret-pay</a></li>
+				<li><a href={GITHUB}>Source on GitHub</a></li>
+			</ul>
+		</div>
+		<div>
+			<h4>Nieuport Labs</h4>
+			<ul>
+				<li><a href={DASHBOARD}>Secret Dashboard</a></li>
+				<li><a href="/privacy">Privacy</a></li>
+			</ul>
+		</div>
+	</div>
+	<div class="shell base faint">
+		<span>© {year} Nieuport Labs</span>
+		<span>DarkShell is not a bank. You hold your own keys; nobody can recover them for you.</span>
+	</div>
+</footer>
+
+<style>
+	.foot {
+		border-top: 1px solid var(--border);
+		padding: 4rem 0 2.5rem;
+		margin-top: 2rem;
+	}
+	.grid {
+		display: grid;
+		grid-template-columns: 1.6fr repeat(3, 1fr);
+		gap: 2.5rem;
+	}
+	.brand p { margin-top: 1rem; font-size: 0.925rem; line-height: 1.6; }
+	h4 { font-size: 0.85rem; font-weight: 500; color: var(--text-faint); margin-bottom: 0.9rem; }
+	ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+	a { color: var(--text-muted); text-decoration: none; font-size: 0.95rem; transition: color 200ms; }
+	a:hover { color: var(--text); }
+	.base {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-top: 3.5rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border);
+		font-size: 0.85rem;
+	}
+	@media (max-width: 760px) {
+		.grid { grid-template-columns: 1fr 1fr; }
+		.brand { grid-column: 1 / -1; }
+	}
+</style>

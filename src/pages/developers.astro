@@ -1,0 +1,167 @@
+---
+import Base from '../layouts/Base.astro';
+import Code from '../components/Code.astro';
+import Icon from '../components/Icon.astro';
+import { CHECKOUT_EXAMPLE, DASHBOARD, SECRET_PAY, SPEC } from '../config';
+
+const uri = `secret16dyfc744j0lrhae0xpfjxl5cnx2hu80h0p0rad?asset=sscrt&amount=12.5&id=INV-7Q2M9K4D&exp=1893456000`;
+
+const create = `import { newInvoiceId } from 'secret-pay';
+import { checkout, readReturn } from 'secret-pay/checkout';
+
+const invoice = {
+  chain: 'secret-4',
+  address: 'secret16dyfc744j0lrhae0xpfjxl5cnx2hu80h0p0rad', // your address
+  asset: 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek',   // sSCRT
+  amount: '12.5',
+  id: newInvoiceId(),      // keep it with the order: it is the memo you match on
+  label: 'Corner Cafe',
+  exp: Math.floor(Date.now() / 1000) + 30 * 60,
+};
+
+const c = checkout(invoice, {
+  returnUrl: 'https://shop.example/order/42',          // the wallet sends the payer back here
+  fallbackOrigin: '${DASHBOARD}',  // a web page if no wallet is installed
+});
+
+payButton.onclick = () => (location.href = c.url);  // from a click: opens the wallet
+qr.textContent = c.uri;                              // on a computer: a QR code for a phone`;
+
+const back = `// on the return page
+const r = readReturn();
+// { status: 'paid', tx, id } | { status: 'cancelled', id } | null`;
+
+const verify = `import { verifyPayment } from 'secret-pay/verify';
+import { SecretNetworkClient } from 'secretjs';
+
+const client = new SecretNetworkClient({ url: 'https://lcd.example', chainId: 'secret-4' });
+const { status } = await verifyPayment(invoice, client, {
+  viewingKey: process.env.VIEWING_KEY!,
+});
+// 'paid' | 'underpaid' | 'late' | 'no_match'`;
+
+const android = `val pay = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+    val status = r.data?.getStringExtra("status") // "paid" | "cancelled"
+    val tx = r.data?.getStringExtra("tx")
+}
+pay.launch(Intent("cash.darkshell.wallet.action.PAY", Uri.parse("secret:" + uri)))`;
+---
+
+<Base title="Accept payments — DarkShell for developers" description="secret-pay: an open payment-request standard for Secret Network and a zero-dependency library. Add a Pay button; DarkShell opens as a payment sheet and sends the payer back.">
+	<section class="intro shell">
+		<span class="eyebrow">For developers</span>
+		<h1 class="display">Take private payments on Secret&nbsp;Network.</h1>
+		<p class="lead">
+			<code>secret-pay</code> is one URI format for everything a wallet needs to ask for money — an address, an invoice, a link — plus a zero-dependency TypeScript library. DarkShell
+			understands it natively, and so do Secret Dashboard links.
+		</p>
+		<div class="cta">
+			<a class="btn btn-primary" href={SECRET_PAY}>
+				secret-pay on GitHub
+				<span class="knob"><Icon name="github" size={16} stroke={1.8} /></span>
+			</a>
+			<a class="btn btn-ghost btn-plain" href={SPEC}>Read the specification</a>
+		</div>
+	</section>
+
+	<section class="shell flow">
+		<div class="flow-step">
+			<span class="n">1</span>
+			<b>Your page builds a request</b>
+			<p class="muted">Amount, asset, your address and an id the payment will carry as its memo.</p>
+		</div>
+		<div class="flow-step">
+			<span class="n">2</span>
+			<b>The wallet slides up</b>
+			<p class="muted">On Android, DarkShell opens as a sheet over the browser. On a computer, show the QR code.</p>
+		</div>
+		<div class="flow-step">
+			<span class="n">3</span>
+			<b>The payer comes back</b>
+			<p class="muted">To your return URL with the transaction hash — and you check it on chain.</p>
+		</div>
+	</section>
+
+	<section class="shell docs">
+		<article>
+			<h2 class="h3">The request</h2>
+			<p class="muted">
+				Shaped like BIP-21, with no scheme: the address’s bech32 prefix already names the chain. The same request can be a QR code, a short <code>address:sSCRT</code> form or a web
+				link ending in <code>/pay/&lt;address&gt;</code>.
+			</p>
+			<pre class="uri"><code>{uri}</code></pre>
+		</article>
+
+		<article>
+			<h2 class="h3">Add a Pay button</h2>
+			<p class="muted">
+				<code>secret-pay/checkout</code> turns the invoice into a link that opens the payer’s wallet. On Android it is an <code>intent://</code> link with a web fallback;
+				elsewhere a <code>secret:</code> URI.
+			</p>
+			<Code code={create} title="checkout.ts" />
+		</article>
+
+		<article>
+			<h2 class="h3">When they come back</h2>
+			<p class="muted">The wallet opens your <code>returnUrl</code> with <code>secret_pay=paid</code>, the transaction hash and the invoice id.</p>
+			<Code code={back} title="return.ts" />
+			<div class="note">
+				<Icon name="alert" size={18} />
+				<p><b>The return is not proof of payment.</b> Anyone can open your return URL. Before you deliver, check the payment by its memo where your viewing key is safe — never in a public page.</p>
+			</div>
+		</article>
+
+		<article>
+			<h2 class="h3">Verify on your server</h2>
+			<p class="muted"><code>secret-pay/verify</code> reads your received transfers with a viewing key or permit and matches the invoice: amount, memo and expiry.</p>
+			<Code code={verify} title="verify.ts" />
+			<p class="muted small">No server? Issue the invoice from DarkShell instead — it lists issued invoices and marks them paid on its own.</p>
+		</article>
+
+		<article>
+			<h2 class="h3">From an Android app</h2>
+			<p class="muted">Start DarkShell for a result with the request as data. It returns <code>status</code> and <code>tx</code> — confirm by the memo before you deliver, as above.</p>
+			<Code code={android} lang="kotlin" title="Checkout.kt" />
+		</article>
+
+		<article class="links">
+			<a href={CHECKOUT_EXAMPLE}><Icon name="code" /><span><b>A runnable checkout page</b><small>examples/checkout.html</small></span><Icon name="arrow" size={18} /></a>
+			<a href={SPEC}><Icon name="receipt" /><span><b>Specification v1.1</b><small>Forms, parameters, assets, settlement</small></span><Icon name="arrow" size={18} /></a>
+			<a href={SECRET_PAY}><Icon name="github" /><span><b>Library source</b><small>MIT licensed, zero dependencies</small></span><Icon name="arrow" size={18} /></a>
+		</article>
+	</section>
+</Base>
+
+<style>
+	.intro { display: grid; gap: 1.5rem; justify-items: start; padding: clamp(8rem, 16vw, 10rem) 0 3rem; max-width: 52rem; margin-left: max(1.25rem, (100% - 1180px) / 2); }
+	.intro .display { font-size: clamp(2.5rem, 6vw, 4.5rem); }
+	.cta { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+	code { font-family: var(--mono); font-size: 0.88em; color: var(--text); }
+
+	.flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding-bottom: 4rem; }
+	.flow-step { display: grid; gap: 0.5rem; align-content: start; padding: 1.5rem; border-radius: 1.25rem; border: 1px solid var(--border); background: var(--surface-1); }
+	.flow-step b { font-weight: 500; font-size: 1.05rem; }
+	.flow-step p { font-size: 0.95rem; }
+	.n { display: grid; place-items: center; width: 2rem; height: 2rem; margin-bottom: 0.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.9rem; }
+
+	.docs { display: grid; gap: 3.5rem; max-width: 52rem; padding-bottom: 6rem; margin-left: max(1.25rem, (100% - 1180px) / 2); }
+	.docs article { display: grid; gap: 1rem; }
+	.docs .muted { line-height: 1.7; }
+	.small { font-size: 0.92rem; }
+	.uri { margin: 0; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid var(--border); background: #0a0a0a; font: 0.84rem/1.7 var(--mono); white-space: pre-wrap; word-break: break-all; color: var(--text-muted); }
+	.note { display: flex; gap: 0.85rem; padding: 1rem 1.15rem; border-radius: 1rem; border: 1px solid rgb(255 57 18 / 0.3); background: rgb(255 57 18 / 0.06); color: var(--text-muted); font-size: 0.95rem; }
+	.note :global(svg) { flex-shrink: 0; margin-top: 0.15rem; color: var(--accent); }
+	.note b { color: var(--text); font-weight: 500; }
+
+	.links { gap: 0.6rem !important; }
+	.links a { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; border-radius: 1.1rem; border: 1px solid var(--border); background: var(--surface-1); text-decoration: none; transition: background-color 200ms, border-color 200ms; }
+	.links a:hover { background: var(--surface-2); border-color: var(--border-strong); }
+	.links span { flex: 1; }
+	.links b { display: block; font-weight: 500; }
+	.links small { color: var(--text-faint); font-size: 0.85rem; }
+	.links :global(svg) { color: var(--text-muted); flex-shrink: 0; }
+
+	@media (max-width: 760px) {
+		.flow { grid-template-columns: 1fr; }
+	}
+</style>

@@ -1,0 +1,79 @@
+---
+// A code block, highlighted at build time (strings, comments, keywords), with
+// a copy button.
+interface Props {
+	code: string;
+	lang?: string;
+	title?: string;
+}
+const { code, lang = 'ts', title } = Astro.props;
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const KEYWORDS = /^(import|from|export|const|let|await|async|new|return|if|else|function|val|for|of)$/;
+const TOKEN = /(\/\/[^\n]*|#[^\n]*|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`|\b\d[\d_.]*\b|\b[A-Za-z_$][\w$]*\b)/g;
+const comment = lang === 'bash' ? /^#/ : /^\/\//;
+const html = code.replace(TOKEN, (t) => {
+	if (comment.test(t)) return `<span class="c">${esc(t)}</span>`;
+	if (/^['"`]/.test(t)) return `<span class="s">${esc(t)}</span>`;
+	if (/^\d/.test(t)) return `<span class="n">${esc(t)}</span>`;
+	if (KEYWORDS.test(t)) return `<span class="k">${esc(t)}</span>`;
+	return t;
+});
+// what lies between the highlighted tokens is still raw: escape it
+const safe = html.split(/(<span class="[a-z]">[\s\S]*?<\/span>)/).map((part, i) => (i % 2 ? part : esc(part))).join('');
+---
+
+<div class="code">
+	<div class="bar">
+		<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+		<span class="name">{title ?? lang}</span>
+		<button type="button" class="copy" data-code={code} aria-label="Copy code">Copy</button>
+	</div>
+	<pre><code set:html={safe} /></pre>
+</div>
+
+<style>
+	.code {
+		min-width: 0;
+		border-radius: 1.25rem;
+		border: 1px solid var(--border);
+		background: #0a0a0a;
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+		overflow: hidden;
+	}
+	.bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0.8rem 0.7rem 1rem; border-bottom: 1px solid var(--border); }
+	.dots { display: flex; gap: 0.35rem; }
+	.dots i { width: 0.6rem; height: 0.6rem; border-radius: 999px; background: var(--surface-3); }
+	.name { color: var(--text-faint); font-size: 0.8rem; font-family: var(--mono); }
+	.copy {
+		margin-left: auto;
+		padding: 0.3rem 0.75rem;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: var(--surface-1);
+		color: var(--text-muted);
+		font: 500 0.8rem var(--font);
+		cursor: pointer;
+		transition: background-color 200ms, color 200ms;
+	}
+	.copy:hover { background: var(--surface-2); color: var(--text); }
+	pre { margin: 0; padding: 1.2rem 1.25rem 1.4rem; overflow-x: auto; font: 0.86rem/1.75 var(--mono); color: #e6e6e6; tab-size: 2; }
+	pre :global(.k) { color: #ff8a6b; }
+	pre :global(.s) { color: #9fe0b8; }
+	pre :global(.c) { color: rgb(255 255 255 / 0.4); font-style: italic; }
+	pre :global(.n) { color: #f5c97a; }
+</style>
+
+<script>
+	document.querySelectorAll<HTMLButtonElement>('.code .copy').forEach((b) =>
+		b.addEventListener('click', async () => {
+			try {
+				await navigator.clipboard.writeText(b.dataset.code ?? '');
+				b.textContent = 'Copied';
+				setTimeout(() => (b.textContent = 'Copy'), 1500);
+			} catch {
+				/* clipboard blocked */
+			}
+		}),
+	);
+</script>

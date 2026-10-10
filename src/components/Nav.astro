@@ -1,0 +1,154 @@
+---
+import { APK_URL, NAV } from '../config';
+import Icon from './Icon.astro';
+import Logo from './Logo.astro';
+---
+
+<header class="nav-wrap">
+	<nav class="nav" aria-label="Main">
+		<Logo />
+		<ul class="links">
+			{
+				NAV.map((n) => (
+					<li>
+						<a href={n.href}>{n.label}</a>
+					</li>
+				))
+			}
+		</ul>
+		<a class="btn btn-primary btn-sm get" href={APK_URL}>
+			Download
+			<span class="knob"><Icon name="down" size={16} stroke={2} /></span>
+		</a>
+		<button class="menu" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menu">
+			<span></span><span></span>
+		</button>
+	</nav>
+	<div id="mobile-menu" class="sheet" hidden>
+		<ul>
+			{
+				NAV.map((n, i) => (
+					<li style={`--i:${i}`}>
+						<a href={n.href}>{n.label}</a>
+					</li>
+				))
+			}
+		</ul>
+		<a class="btn btn-primary" href={APK_URL}>
+			Download for Android
+			<span class="knob"><Icon name="down" size={16} stroke={2} /></span>
+		</a>
+	</div>
+</header>
+
+<style>
+	.nav-wrap {
+		position: fixed;
+		inset: 0 0 auto;
+		z-index: 50;
+		padding: 0.9rem 1rem 0;
+		pointer-events: none;
+	}
+	.nav {
+		pointer-events: auto;
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		width: min(1080px, 100%);
+		margin-inline: auto;
+		padding: 0.45rem 0.45rem 0.45rem 0.9rem;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: rgb(14 14 14 / 0.62);
+		-webkit-backdrop-filter: blur(24px) saturate(160%);
+		backdrop-filter: blur(24px) saturate(160%);
+		box-shadow: 0 12px 40px -18px rgb(0 0 0 / 0.9);
+	}
+	.links {
+		display: flex;
+		gap: 0.25rem;
+		margin: 0 0 0 auto;
+		padding: 0;
+		list-style: none;
+	}
+	.links a {
+		display: block;
+		padding: 0.5rem 0.85rem;
+		border-radius: 999px;
+		color: var(--text-muted);
+		font-size: 0.925rem;
+		text-decoration: none;
+		transition: color 200ms, background-color 200ms;
+	}
+	.links a:hover { color: var(--text); background: var(--surface-2); }
+
+	.menu {
+		display: none;
+		position: relative;
+		width: 2.6rem;
+		height: 2.6rem;
+		margin-left: auto;
+		border: 0;
+		border-radius: 999px;
+		background: var(--surface-2);
+		cursor: pointer;
+	}
+	.menu span {
+		position: absolute;
+		left: 0.8rem;
+		right: 0.8rem;
+		height: 1.5px;
+		background: var(--text);
+		transition: transform 400ms var(--ease), top 400ms var(--ease);
+	}
+	.menu span:first-child { top: 1.05rem; }
+	.menu span:last-child { top: 1.5rem; }
+	.menu[aria-expanded='true'] span:first-child { top: 1.27rem; transform: rotate(45deg); }
+	.menu[aria-expanded='true'] span:last-child { top: 1.27rem; transform: rotate(-45deg); }
+
+	.sheet {
+		pointer-events: auto;
+		width: min(1080px, 100%);
+		margin: 0.5rem auto 0;
+		padding: 1rem;
+		border-radius: 1.75rem;
+		border: 1px solid var(--border);
+		background: rgb(14 14 14 / 0.92);
+		-webkit-backdrop-filter: blur(28px);
+		backdrop-filter: blur(28px);
+	}
+	.sheet:not([hidden]) { animation: drop 450ms var(--ease); }
+	.sheet ul { list-style: none; margin: 0 0 1rem; padding: 0; }
+	.sheet li { animation: up 500ms var(--ease) backwards; animation-delay: calc(var(--i) * 50ms + 60ms); }
+	.sheet li a {
+		display: block;
+		padding: 0.85rem 0.5rem;
+		border-bottom: 1px solid var(--border);
+		font-size: 1.35rem;
+		letter-spacing: -0.02em;
+		text-decoration: none;
+	}
+	.sheet .btn { width: 100%; justify-content: space-between; }
+
+	@keyframes drop { from { opacity: 0; transform: translateY(-8px); } }
+	@keyframes up { from { opacity: 0; transform: translateY(10px); } }
+
+	@media (max-width: 820px) {
+		.links, .get { display: none; }
+		.menu { display: block; }
+	}
+</style>
+
+<script>
+	const btn = document.querySelector<HTMLButtonElement>('.menu')!;
+	const sheet = document.getElementById('mobile-menu')!;
+	const set = (open: boolean) => {
+		btn.setAttribute('aria-expanded', String(open));
+		sheet.hidden = !open;
+	};
+	btn.addEventListener('click', () => set(btn.getAttribute('aria-expanded') !== 'true'));
+	sheet.addEventListener('click', (e) => {
+		if ((e.target as HTMLElement).closest('a')) set(false);
+	});
+	addEventListener('keydown', (e) => e.key === 'Escape' && set(false));
+</script>

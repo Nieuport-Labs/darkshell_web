@@ -1,0 +1,77 @@
+---
+// A phone drawn in CSS: a machined frame around a screen. What it shows is the slot.
+interface Props {
+	class?: string;
+	label: string;
+}
+const { class: klass = '', label } = Astro.props;
+---
+
+<figure class={`phone ${klass}`} role="img" aria-label={label}>
+	<div class="frame">
+		<div class="screen">
+			<div class="status" aria-hidden="true">
+				<span>9:41</span>
+				<span class="island"></span>
+				<span class="sys">
+					<svg viewBox="0 0 18 12" width="16" height="11"><path d="M1 11h2V8H1zM5 11h2V6H5zM9 11h2V4H9zM13 11h2V1h-2z" fill="currentColor" /></svg>
+					<svg viewBox="0 0 26 12" width="22" height="11"><rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".5" /><rect x="2" y="2" width="16" height="8" rx="1.6" fill="currentColor" /><path d="M24 4v4" stroke="currentColor" stroke-linecap="round" opacity=".5" /></svg>
+				</span>
+			</div>
+			<slot />
+		</div>
+	</div>
+</figure>
+
+<style>
+	.phone {
+		--w: 300px;
+		margin: 0;
+		width: var(--w);
+		aspect-ratio: 9 / 19.2;
+		flex-shrink: 0;
+	}
+	.frame {
+		height: 100%;
+		padding: 9px;
+		border-radius: calc(var(--w) * 0.155);
+		background: linear-gradient(145deg, #2a2a2a, #111 40%, #1c1c1c);
+		box-shadow:
+			inset 0 0 0 1px rgb(255 255 255 / 0.1),
+			0 0 0 1px #000,
+			0 40px 90px -30px rgb(0 0 0 / 0.95),
+			0 24px 60px -40px rgb(255 57 18 / 0.35);
+	}
+	.screen {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+		border-radius: calc(var(--w) * 0.125);
+		background: #080808;
+		font-size: calc(var(--w) * 0.0435);
+		line-height: 1.4;
+		container-type: inline-size;
+	}
+	.status {
+		position: relative;
+		z-index: 5;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 2.4em;
+		padding: 0 1.5em;
+		font-size: 0.8em;
+		font-weight: 600;
+	}
+	.island {
+		position: absolute;
+		left: 50%;
+		top: 0.55em;
+		width: 6.2em;
+		height: 1.6em;
+		margin-left: -3.1em;
+		border-radius: 999px;
+		background: #000;
+	}
+	.sys { display: flex; gap: 0.4em; align-items: center; }
+</style>

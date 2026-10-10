@@ -1,0 +1,29 @@
+---
+interface Props {
+	size?: number;
+}
+const { size = 32 } = Astro.props;
+---
+
+<a href="/" class="logo" aria-label="DarkShell — home">
+	<img src="/avatar.webp" alt="" width={size} height={size} />
+	<span>DarkShell</span>
+</a>
+
+<style>
+	.logo {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		color: var(--text);
+		text-decoration: none;
+		font-weight: 600;
+		font-size: 1.05rem;
+		letter-spacing: -0.02em;
+	}
+	img {
+		border-radius: 999px;
+		object-fit: cover;
+		box-shadow: 0 0 0 1px var(--border-strong);
+	}
+</style>

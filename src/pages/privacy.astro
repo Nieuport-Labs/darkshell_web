@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import { GITHUB } from '../config';
+const updated = 'October 2026';
+---
+
+<Base title="Privacy — DarkShell" description="DarkShell has no account, no server and no analytics. What the app talks to, and what this website does (nothing).">
+	<article class="shell doc">
+		<span class="eyebrow">Privacy</span>
+		<h1 class="display">We don’t have your data. On purpose.</h1>
+		<p class="lead">DarkShell has no account, no backend and no analytics. This page lists everything the app and this website talk to, so you don’t have to take our word for it.</p>
+		<p class="faint small">Last updated {updated}.</p>
+
+		<h2 class="h3">The app</h2>
+		<ul>
+			<li><b>Your keys and data stay on your phone.</b> The recovery phrase and address book are encrypted on the device under your PIN; invoices and the activity log are kept in the app’s own storage. Android backup is turned off for the app.</li>
+			<li><b>Secret Network nodes.</b> The app reads balances and sends transactions through public Secret Network nodes (LCD and RPC endpoints run by community operators). They see your address and IP address, like any wallet’s node. Turn on Tor in the app to hide your IP address from them.</li>
+			<li><b>Payment notifications</b> are recognised on the phone from encrypted on-chain data; no server is told which payments are yours.</li>
+			<li><b>Prices.</b> The USD value shown next to amounts comes from a public price endpoint (Osmosis). It is asked for prices, not about you.</li>
+			<li><b>Fee faucet.</b> Your very first gas-credit top-up asks a public fee faucet to pay its fee; the faucet learns your address.</li>
+			<li><b>Lightning and other chains</b> are paid through FixedFloat, which receives the order details (amount, destination) when you choose to pay that way. Their own privacy policy applies.</li>
+			<li><b>Validator names and pictures</b> on the Earn tab are looked up on Keybase by the validator’s key, not by anything about you.</li>
+		</ul>
+
+		<h2 class="h3">This website</h2>
+		<ul>
+			<li>No cookies, no analytics, no trackers, no third-party scripts or fonts. It is a static site served by Vercel, whose servers keep standard access logs.</li>
+			<li>The download link points to the signed APK on <a class="text-link" href={`${GITHUB}/releases`}>GitHub releases</a>; downloading it is subject to GitHub’s policy.</li>
+		</ul>
+
+		<h2 class="h3">Your rights</h2>
+		<p class="muted">Because we hold no personal data about you, there is nothing for us to export or delete. To remove DarkShell’s data from your phone, remove the account in the app or uninstall it — and keep your recovery phrase, since it is the only way back to your money.</p>
+
+		<h2 class="h3">Questions</h2>
+		<p class="muted">Open an issue on <a class="text-link" href={`${GITHUB}/issues`}>GitHub</a>.</p>
+	</article>
+</Base>
+
+<style>
+	.doc { display: grid; gap: 1.25rem; max-width: 46rem; padding: clamp(8rem, 16vw, 10rem) 0 6rem; margin-left: max(1.25rem, (100% - 1180px) / 2); }
+	.doc .display { font-size: clamp(2.4rem, 5.5vw, 4rem); }
+	.doc h2 { margin-top: 1.75rem; }
+	.small { font-size: 0.9rem; }
+	ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.9rem; color: var(--text-muted); line-height: 1.7; }
+	li b { color: var(--text); font-weight: 500; }
+	li::marker { color: var(--accent); }
+	.muted { line-height: 1.7; }
+</style>
