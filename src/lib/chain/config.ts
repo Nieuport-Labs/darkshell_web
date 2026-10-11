@@ -6,8 +6,8 @@ export const DENOM = 'uscrt';
 export const GAS_PRICE = 0.1;
 export const SSCRT_ADDRESS = 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek';
 
-/** Public nodes, tried in order. Also listed in vercel.json's Content-Security-Policy. */
-export const LCD_URLS = ['https://lcd-secret.keplr.app', 'https://lcd.mainnet.secretsaturn.net', 'https://lcd.secret.express', 'https://secret-api.lavenderfive.com'];
+/** Public nodes, asked at once (first to answer wins). Also listed in vercel.json's Content-Security-Policy. */
+export const LCD_URLS = ['https://rest.lavenderfive.com:443/secretnetwork', 'https://secretnetwork-api.lavenderfive.com', 'https://lcd-secret.keplr.app'];
 
 export function withGasBuffer(gas: number): number {
 	return Math.ceil(gas * 1.2);

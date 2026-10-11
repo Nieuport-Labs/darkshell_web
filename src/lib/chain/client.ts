@@ -7,7 +7,7 @@ import type { Connection } from './wallet';
 
 async function probe(url: string): Promise<boolean> {
 	const ctl = new AbortController();
-	const timer = setTimeout(() => ctl.abort(), 8000);
+	const timer = setTimeout(() => ctl.abort(), 15000);
 	try {
 		const r = await fetch(`${url}/cosmos/base/tendermint/v1beta1/node_info`, { signal: ctl.signal, headers: { Accept: 'application/json' } });
 		if (!r.ok) return false;
@@ -25,9 +25,12 @@ let resolved: Promise<string> | null = null;
 /** The first node that answers for secret-4. */
 export function lcdUrl(): Promise<string> {
 	return (resolved ??= (async () => {
-		for (const url of LCD_URLS) if (await probe(url)) return url;
-		resolved = null;
-		throw new Error('No Secret Network node is reachable right now. Check your connection.');
+		try {
+			return await Promise.any(LCD_URLS.map(async (url) => ((await probe(url)) ? url : Promise.reject(new Error(url)))));
+		} catch {
+			resolved = null;
+			throw new Error('No Secret Network node is reachable right now. Check your connection.');
+		}
 	})());
 }
 
